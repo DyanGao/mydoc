@@ -9,6 +9,12 @@ const defaultFiles = [{
     title: 'second post',
     body: '## this is the title',
     createdAt: 156376245683
+  },
+  {
+    id: '3',
+    title: 'Hello world',
+    body: '## this is the title',
+    createdAt: 156376245683
   }
 ]
 
