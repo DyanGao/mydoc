@@ -18,7 +18,7 @@ const TabList = ({ files, activeId, unsaveIds, onTabClick, onCloseTab }) => {
         return (
           <li className="nav-item" key={file.id}>
             <a
-              href="#"
+              href="##"
               className={fClassName}
               onClick={(e) => {
                 e.preventDefault();

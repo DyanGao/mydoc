@@ -4,6 +4,12 @@ import { faEdit, faTrash, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { faMarkdown } from "@fortawesome/free-brands-svg-icons";
 import PropTypes from "prop-types";
 import useKeyPress from "../hooks/useKeyPress";
+import useContextMenu from "../hooks/useContextMenu";
+import { getParentNode } from "../utils/helper";
+
+//load nodejs modules
+//const { remote } = window.require("electron");
+//const { Menu, MenuItem } = remote;
 
 const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
   const [editStatus, setEditStatus] = useState(false);
@@ -19,6 +25,78 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
       onFileDelete(editItem.id);
     }
   };
+
+  const clickedItem = useContextMenu(
+    [
+      {
+        label: "Open",
+        click: () => {
+          const parentElement = getParentNode(clickedItem.current, "file-item");
+          if (parentElement) {
+            onFileClick(parentElement.dataset.id);
+          }
+          //console.log(parentElement.dataset.id);
+        },
+      },
+      {
+        label: "Rename",
+        click: () => {
+          const parentElement = getParentNode(clickedItem.current, "file-item");
+          if (parentElement) {
+            const { id, title } = parentElement.dataset;
+            setEditStatus(id);
+            setValue(title);
+          }
+        },
+      },
+      {
+        label: "Delete",
+        click: () => {
+          const parentElement = getParentNode(clickedItem.current, "file-item");
+          if (parentElement) {
+            onFileDelete(parentElement.dataset.id);
+          }
+        },
+      },
+    ],
+    ".file-list",
+    [files]
+  );
+
+  /* useEffect(() => {
+    const menu = new Menu();
+    menu.append(
+      new MenuItem({
+        label: "Open",
+        click: () => {
+          console.log("clicked");
+        },
+      })
+    );
+    menu.append(
+      new MenuItem({
+        label: "Rename",
+        click: () => {
+          console.log("renamed");
+        },
+      })
+    );
+    menu.append(
+      new MenuItem({
+        label: "Delete",
+        click: () => {
+          console.log("deleted");
+        },
+      })
+    );
+    const handleContextMenu = (e) => {
+      menu.popup({ window: remote.getCurrentWindow() });
+    };
+    window.addEventListener("contextmenu", handleContextMenu);
+    return () => {
+      window.removeEventListener("contextmenu", handleContextMenu);
+    };
+  }); */
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -51,7 +129,7 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
 
   useEffect(() => {
     const newFile = files.find((file) => file.isNew);
-    console.log(newFile);
+    //console.log(newFile);
     if (newFile) {
       setEditStatus(newFile.id);
       setValue(newFile.title);
@@ -70,6 +148,8 @@ const FileList = ({ files, onFileClick, onSaveEdit, onFileDelete }) => {
         <li
           className="list-group-item bg-light row d-flex align-items-center file-item mx-0"
           key={file.id}
+          data-id={file.id}
+          data-title={file.title}
         >
           {file.id !== editStatus && !file.isNew && (
             <>
