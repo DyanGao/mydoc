@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import {
-  faPlus,
-  faFileImport,
-  faSave,
-} from "@fortawesome/free-solid-svg-icons";
+import { faPlus, faFileImport } from "@fortawesome/free-solid-svg-icons";
 import SimpleMDE from "react-simplemde-editor";
 import { v4 as uuidv4 } from "uuid";
 import { objToArr, flattenArr } from "./utils/helper";
@@ -15,12 +11,17 @@ import FileSearch from "./components/FileSearch";
 import FileList from "./components/FileList";
 import BottomBtn from "./components/BottomBtn";
 import TabList from "./components/TabList";
+import useIpcRenderer from "./hooks/useIpcRenderer";
 //import defaultFiles from "./utils/defaultFiles";
 //require node.js modules
 const { join, basename, extname, dirname } = window.require("path");
 const { remote } = window.require("electron");
+const { dialog } = window.require("electron").remote;
 const Store = window.require("electron-store");
 const fileStore = new Store({ name: "Files Data" });
+const settingsStore = new Store({
+  name: "Settings",
+});
 
 const saveFilesToStore = (files) => {
   // we don't have to store any infos in file system, eg: isNew, body, etc
@@ -46,7 +47,8 @@ function App() {
   const [searchedFiles, setSearchedFiles] = useState([]);
   const filesArr = objToArr(files);
   //console.log(filesArr);
-  const savedLocation = remote.app.getPath("documents");
+  const savedLocation =
+    settingsStore.get("savedFileLocation") || remote.app.getPath("documents");
   const activeFile = files[activeFileID];
   const openedFiles = openedFileIDs.map((openID) => {
     return files[openID];
@@ -92,11 +94,13 @@ function App() {
       }
       return file;
     }); */
-    const newFile = { ...files[id], body: value };
-    setFiles({ ...files, [id]: newFile });
-    //update unsavedIDs
-    if (!unsavedFileIDs.includes(id)) {
-      setUnsavedFileIDs([...unsavedFileIDs, id]);
+    if (value !== files[id].body) {
+      const newFile = { ...files[id], body: value };
+      setFiles({ ...files, [id]: newFile });
+      //update unsavedIDs
+      if (!unsavedFileIDs.includes(id)) {
+        setUnsavedFileIDs([...unsavedFileIDs, id]);
+      }
     }
   };
 
@@ -172,15 +176,15 @@ function App() {
   };
 
   const importFiles = () => {
-    remote.dialog.showOpenDialog(
-      {
+    dialog
+      .showOpenDialog({
         title: "please choose Markdown file",
         properties: ["openFile", "multiSelections"],
         filters: [{ name: "Markdown files", extensions: ["md"] }],
-      },
-      (paths) => {
-        if (Array.isArray(paths)) {
-          const filteredPaths = paths.filter((path) => {
+      })
+      .then((result) => {
+        if (Array.isArray(result.filePaths)) {
+          const filteredPaths = result.filePaths.filter((path) => {
             const alreadyAdded = Object.values(files).find((file) => {
               return file.path === path;
             });
@@ -208,9 +212,24 @@ function App() {
             });
           }
         }
-      }
-    );
+      });
   };
+
+  /* useEffect(() => {
+    const callback = () => {
+      console.log("hello from menu");
+    };
+    ipcRenderer.on("create-new-file", callback);
+    return () => {
+      ipcRenderer.removeListener("create-new-file", callback);
+    };
+  }); */
+
+  useIpcRenderer({
+    "create-new-file": createNewFile,
+    "import-file": importFiles,
+    "save-edit-file": saveCurrentFile,
+  });
 
   return (
     <div className="App container-fluid px-0">
@@ -268,12 +287,12 @@ function App() {
                   minHeight: "515px",
                 }}
               />
-              <BottomBtn
+              {/* <BottomBtn
                 text="Save"
                 colorClass="btn-success"
                 icon={faSave}
                 onBtnClick={saveCurrentFile}
-              />
+              /> */}
             </>
           )}
         </div>
